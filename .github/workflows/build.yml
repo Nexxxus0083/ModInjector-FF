@@ -1,0 +1,58 @@
+name: iOS Build for TrollStore
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest # Necessário para compilar Swift/iOS
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: '5.9' # Versão compatível com o código
+
+    - name: Install ldid (for TrollStore signing)
+      run: |
+        brew install ldid
+        ldid -v
+
+    - name: Make build.sh executable
+      run: chmod +x build.sh
+
+    - name: Run Build Script
+      run: ./build.sh all
+      
+    - name: Check for IPA file
+      run: |
+        ls -lh build/MemoryInjector.ipa
+        if [ ! -f "build/MemoryInjector.ipa" ]; then
+          echo "::error::IPA file not found after build!"
+          exit 1
+        fi
+
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MemoryInjector-IPA
+        path: build/MemoryInjector.ipa
+        retention-days: 7
+        
+    - name: Get IPA Download URL
+      id: get_url
+      run: |
+        # O GitHub Actions não fornece um link direto para o artefato,
+        # mas podemos construir o link para a página de download.
+        # O usuário terá que ir na página de Actions e baixar o artefato.
+        echo "IPA_URL=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+        
+    - name: Print Download URL
+      run: |
+        echo "::notice file=README.md::IPA compilado! Baixe em: ${{ steps.get_url.outputs.IPA_URL }}"
