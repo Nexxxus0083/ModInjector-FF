@@ -22,7 +22,6 @@ jobs:
     - name: Install ldid (for TrollStore signing)
       run: |
         brew install ldid
-        ldid -v
 
     - name: Make build.sh executable
       run: chmod +x build.sh
